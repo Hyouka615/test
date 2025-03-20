@@ -4,29 +4,55 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ESP32 温湿度监控</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script> <!-- 引入 Chart.js -->
     <style>
         body { font-family: Arial, sans-serif; text-align: center; }
         .card { display: inline-block; padding: 20px; border-radius: 10px; box-shadow: 2px 2px 10px rgba(0,0,0,0.2); margin: 20px; }
         .temp { color: red; font-size: 24px; }
         .hum { color: blue; font-size: 24px; }
+        canvas { max-width: 600px; margin: auto; }
     </style>
 </head>
 <body>
     <h1>ESP32 温湿度监控</h1>
+    
     <div class="card">
-        <h2>温度</h2>
+        <h2>当前温度</h2>
         <p class="temp">-- °C</p>
     </div>
     <div class="card">
-        <h2>湿度</h2>
+        <h2>当前湿度</h2>
         <p class="hum">-- %</p>
     </div>
+
+    <h2>温湿度变化趋势</h2>
+    <canvas id="tempHumChart"></canvas> <!-- 绘制温湿度图表 -->
 
     <script>
         // LeanCloud 配置
         const APP_ID = "FYr9DoTYGGf1jB1zyj2eiaf5-gzGzoHsz";  // LeanCloud App ID
         const APP_KEY = "cwskAtC4QndeILToat9a2Qti";  // LeanCloud App Key
         const SERVER_URL = "https://fyr9doty.lc-cn-n1-shared.com/1.1/classes/tem_and_hum"; // API 端点
+
+        // 初始化 Chart.js 图表
+        const ctx = document.getElementById('tempHumChart').getContext('2d');
+        const tempHumChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: [], // 时间标签
+                datasets: [
+                    { label: '温度 (°C)', data: [], borderColor: 'red', fill: false },
+                    { label: '湿度 (%)', data: [], borderColor: 'blue', fill: false }
+                ]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    x: { title: { display: true, text: '时间' } },
+                    y: { title: { display: true, text: '值' }, min: 0, max: 100 }
+                }
+            }
+        });
 
         function fetchData() {
             fetch(SERVER_URL, {
@@ -40,9 +66,25 @@
             .then(response => response.json())
             .then(data => {
                 if (data.results && data.results.length > 0) {
-                    let latestData = data.results[data.results.length - 1]; // 获取最新的数据
+                    let latestData = data.results[data.results.length - 1]; // 获取最新数据
+                    let latestTime = new Date(latestData.createdAt).toLocaleTimeString(); // 时间戳格式化
+
+                    // 更新当前温湿度显示
                     document.querySelector('.temp').innerText = latestData.temperature + " °C";
                     document.querySelector('.hum').innerText = latestData.humidity + " %";
+
+                    // 更新图表数据（只保留最近 10 条数据）
+                    tempHumChart.data.labels.push(latestTime);
+                    tempHumChart.data.datasets[0].data.push(latestData.temperature);
+                    tempHumChart.data.datasets[1].data.push(latestData.humidity);
+                    
+                    if (tempHumChart.data.labels.length > 10) {
+                        tempHumChart.data.labels.shift();
+                        tempHumChart.data.datasets[0].data.shift();
+                        tempHumChart.data.datasets[1].data.shift();
+                    }
+
+                    tempHumChart.update(); // 刷新图表
                 } else {
                     console.warn("未找到数据");
                 }
