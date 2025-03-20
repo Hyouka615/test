@@ -115,7 +115,7 @@
             .catch(error => console.error("数据获取失败:", error));
         }
 
-        // 切换LED状态
+       // 切换LED状态
         function toggleLED() {
             const button = document.getElementById('ledButton');
             const currentState = button.innerText.includes('关闭') ? 'ON' : 'OFF';
@@ -139,5 +139,13 @@
                     console.error("更新 LED 状态失败");
                 }
             })
-            .catch(error => console.error("更新 LED 状态时出错:",
-::contentReference[oaicite:0]{index=0}
+            .catch(error => console.error("更新 LED 状态时出错:", error));
+        }
+
+        // 页面加载时获取数据
+        fetchData();
+        // 每 10 秒刷新一次数据
+        setInterval(fetchData, 10000);
+    </script>
+</body>
+</html>
