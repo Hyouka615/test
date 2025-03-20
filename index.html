@@ -6,52 +6,59 @@
     <title>ESP32 温湿度监控</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script> <!-- 引入 Chart.js -->
     <style>
-        body { font-family: Arial, sans-serif; text-align: center; }
-        .card { display: inline-block; padding: 20px; border-radius: 10px; box-shadow: 2px 2px 10px rgba(0,0,0,0.2); margin: 20px; }
-        .temp { color: red; font-size: 24px; }
-        .hum { color: blue; font-size: 24px; }
-        canvas { max-width: 600px; margin: auto; }
+        body { font-family: Arial, sans-serif; text-align: center; background-color: #f4f4f4; }
+        .container { max-width: 800px; margin: auto; }
+        .card { display: inline-block; width: 45%; padding: 20px; border-radius: 10px; 
+                box-shadow: 2px 2px 10px rgba(0,0,0,0.2); margin: 10px; background-color: white; }
+        .temp { color: red; font-size: 28px; }
+        .hum { color: blue; font-size: 28px; }
+        .icon { font-size: 40px; margin-right: 10px; }
+        canvas { max-width: 100%; margin-top: 20px; }
     </style>
 </head>
 <body>
     <h1>ESP32 温湿度监控</h1>
-    
-    <div class="card">
-        <h2>当前温度</h2>
-        <p class="temp">-- °C</p>
-    </div>
-    <div class="card">
-        <h2>当前湿度</h2>
-        <p class="hum">-- %</p>
-    </div>
+    <div class="container">
+        <div class="card">
+            <h2>🌡 当前温度</h2>
+            <p class="temp">-- °C</p>
+        </div>
+        <div class="card">
+            <h2>💧 当前湿度</h2>
+            <p class="hum">-- %</p>
+        </div>
 
-    <h2>温湿度变化趋势</h2>
-    <canvas id="tempHumChart"></canvas> <!-- 绘制温湿度图表 -->
+        <h2>🌡 温度变化趋势</h2>
+        <canvas id="tempChart"></canvas>
+
+        <h2>💧 湿度变化趋势</h2>
+        <canvas id="humChart"></canvas>
+    </div>
 
     <script>
         // LeanCloud 配置
-        const APP_ID = "FYr9DoTYGGf1jB1zyj2eiaf5-gzGzoHsz";  // LeanCloud App ID
-        const APP_KEY = "cwskAtC4QndeILToat9a2Qti";  // LeanCloud App Key
-        const SERVER_URL = "https://fyr9doty.lc-cn-n1-shared.com/1.1/classes/tem_and_hum"; // API 端点
+        const APP_ID = "FYr9DoTYGGf1jB1zyj2eiaf5-gzGzoHsz";
+        const APP_KEY = "cwskAtC4QndeILToat9a2Qti";
+        const SERVER_URL = "https://fyr9doty.lc-cn-n1-shared.com/1.1/classes/tem_and_hum";
 
-        // 初始化 Chart.js 图表
-        const ctx = document.getElementById('tempHumChart').getContext('2d');
-        const tempHumChart = new Chart(ctx, {
+        // 初始化温度图表
+        const tempCtx = document.getElementById('tempChart').getContext('2d');
+        const tempChart = new Chart(tempCtx, {
             type: 'line',
-            data: {
-                labels: [], // 时间标签
-                datasets: [
-                    { label: '温度 (°C)', data: [], borderColor: 'red', fill: false },
-                    { label: '湿度 (%)', data: [], borderColor: 'blue', fill: false }
-                ]
-            },
-            options: {
-                responsive: true,
-                scales: {
-                    x: { title: { display: true, text: '时间' } },
-                    y: { title: { display: true, text: '值' }, min: 0, max: 100 }
-                }
-            }
+            data: { labels: [], datasets: [{ label: '温度 (°C)', data: [], borderColor: 'red', 
+                    backgroundColor: 'rgba(255, 0, 0, 0.2)', pointRadius: 5, pointStyle: 'circle', fill: true }] },
+            options: { responsive: true, scales: { x: { title: { display: true, text: '时间' } }, 
+                    y: { title: { display: true, text: '温度 (°C)' }, min: 0, max: 50 } } }
+        });
+
+        // 初始化湿度图表
+        const humCtx = document.getElementById('humChart').getContext('2d');
+        const humChart = new Chart(humCtx, {
+            type: 'line',
+            data: { labels: [], datasets: [{ label: '湿度 (%)', data: [], borderColor: 'blue', 
+                    backgroundColor: 'rgba(0, 0, 255, 0.2)', pointRadius: 5, pointStyle: 'circle', fill: true }] },
+            options: { responsive: true, scales: { x: { title: { display: true, text: '时间' } }, 
+                    y: { title: { display: true, text: '湿度 (%)' }, min: 0, max: 100 } } }
         });
 
         function fetchData() {
@@ -66,25 +73,30 @@
             .then(response => response.json())
             .then(data => {
                 if (data.results && data.results.length > 0) {
-                    let latestData = data.results[data.results.length - 1]; // 获取最新数据
-                    let latestTime = new Date(latestData.createdAt).toLocaleTimeString(); // 时间戳格式化
+                    let latestData = data.results[data.results.length - 1]; // 最新数据
+                    let latestTime = new Date(latestData.createdAt).toLocaleTimeString();
 
-                    // 更新当前温湿度显示
+                    // 更新温湿度数据显示
                     document.querySelector('.temp').innerText = latestData.temperature + " °C";
                     document.querySelector('.hum').innerText = latestData.humidity + " %";
 
-                    // 更新图表数据（只保留最近 10 条数据）
-                    tempHumChart.data.labels.push(latestTime);
-                    tempHumChart.data.datasets[0].data.push(latestData.temperature);
-                    tempHumChart.data.datasets[1].data.push(latestData.humidity);
-                    
-                    if (tempHumChart.data.labels.length > 10) {
-                        tempHumChart.data.labels.shift();
-                        tempHumChart.data.datasets[0].data.shift();
-                        tempHumChart.data.datasets[1].data.shift();
+                    // 更新温度图表
+                    tempChart.data.labels.push(latestTime);
+                    tempChart.data.datasets[0].data.push(latestData.temperature);
+                    if (tempChart.data.labels.length > 20) {
+                        tempChart.data.labels.shift();
+                        tempChart.data.datasets[0].data.shift();
                     }
+                    tempChart.update();
 
-                    tempHumChart.update(); // 刷新图表
+                    // 更新湿度图表
+                    humChart.data.labels.push(latestTime);
+                    humChart.data.datasets[0].data.push(latestData.humidity);
+                    if (humChart.data.labels.length > 20) {
+                        humChart.data.labels.shift();
+                        humChart.data.datasets[0].data.shift();
+                    }
+                    humChart.update();
                 } else {
                     console.warn("未找到数据");
                 }
@@ -94,7 +106,6 @@
 
         // 页面加载时获取数据
         fetchData();
-
         // 每 10 秒刷新一次数据
         setInterval(fetchData, 10000);
     </script>
