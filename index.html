@@ -8,7 +8,7 @@
 <body>
     <img id="videoStream" width="640" height="480">
     <script>
-        let ws = new WebSocket("wss://[2001:da8:215:3c02:1295:bd07:90fa:4262]:47989");
+        let ws = new WebSocket("ws://[2001:da8:215:3c02:1295:bd07:90fa:4262]:47989");
         ws.onmessage = function(event) {
             document.getElementById("videoStream").src = "data:image/jpeg;base64," + event.data;
         };
