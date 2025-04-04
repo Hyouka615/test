@@ -1,17 +1,30 @@
 <!DOCTYPE html>
-<html lang="zh">
+<html>
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>远程视频</title>
+    <title>远程随机数显示</title>
 </head>
 <body>
-    <img id="videoStream" width="640" height="480">
+    <h1>当前随机数：</h1>
+    <div id="code" style="font-size: 48px; color: green;"></div>
+
     <script>
-        let ws = new WebSocket("ws://[2001:da8:215:3c02:1295:bd07:90fa:4262]:47989");
-        ws.onmessage = function(event) {
-            document.getElementById("videoStream").src = "data:image/jpeg;base64," + event.data;
-        };
+        const codeDiv = document.getElementById('code');
+        const endpoint = "http://[2001:da8:215:3c02:1295:bd07:90fa:4262]:47989/code"; // 注意加上 []
+
+        async function fetchCode() {
+            try {
+                const res = await fetch(endpoint);
+                const data = await res.json();
+                codeDiv.textContent = data.code;
+            } catch (e) {
+                codeDiv.textContent = "获取失败";
+            }
+        }
+
+        fetchCode();
+        setInterval(fetchCode, 10000);
     </script>
 </body>
 </html>
+
